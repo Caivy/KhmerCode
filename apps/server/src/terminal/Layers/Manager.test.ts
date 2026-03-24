@@ -579,20 +579,9 @@ describe("TerminalManager", () => {
 
     expect(snapshot.status).toBe("running");
     expect(ptyAdapter.spawnInputs.length).toBeGreaterThanOrEqual(2);
-    expect(ptyAdapter.spawnInputs[0]?.shell).toBe("/definitely/missing-shell -l");
-    expect(ptyAdapter.spawnInputs[1]?.shell).not.toBe("/definitely/missing-shell -l");
-
-    if (process.platform === "win32") {
-      expect(
-        ptyAdapter.spawnInputs.some((input) => input.shell.toLowerCase().includes("cmd")),
-      ).toBe(true);
-    } else {
-      expect(
-        ptyAdapter.spawnInputs.some((input) =>
-          ["/bin/zsh", "/bin/bash", "/bin/sh", "zsh", "bash", "sh"].includes(input.shell),
-        ),
-      ).toBe(true);
-    }
+    expect(ptyAdapter.spawnInputs[0]?.shell).toBe("/definitely/missing-shell");
+    expect(ptyAdapter.spawnInputs[0]?.args).toBeUndefined();
+    expect(ptyAdapter.spawnInputs[1]?.shell).not.toBe("/definitely/missing-shell");
 
     manager.dispose();
   });

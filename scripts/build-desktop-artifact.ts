@@ -643,6 +643,14 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       ...commandOutputOptions(options.verbose),
       // Windows needs shell mode to resolve package-manager .cmd shims.
       shell: process.platform === "win32",
+    })`pnpm install --prod --lockfile-only --ignore-scripts`,
+  );
+  yield* runCommand(
+    ChildProcess.make({
+      cwd: stageAppDir,
+      ...commandOutputOptions(options.verbose),
+      // Windows needs shell mode to resolve package-manager .cmd shims.
+      shell: process.platform === "win32",
     })`pnpm install --prod --frozen-lockfile`,
   );
 
@@ -683,7 +691,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       ...commandOutputOptions(options.verbose),
       // Windows needs shell mode to resolve package-manager .cmd shims.
       shell: process.platform === "win32",
-    })`pnpm exec electron-builder ${platformConfig.cliFlag} --${options.arch} --publish never`,
+    })`pnpm dlx electron-builder ${platformConfig.cliFlag} --${options.arch} --publish never`,
   );
 
   const stageDistDir = path.join(stageAppDir, "dist");
