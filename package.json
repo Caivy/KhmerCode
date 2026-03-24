@@ -1,0 +1,57 @@
+{
+  "name": "@khmercode/monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx scripts/dev-runner.ts dev",
+    "dev:server": "tsx scripts/dev-runner.ts dev:server",
+    "dev:web": "tsx scripts/dev-runner.ts dev:web",
+    "dev:marketing": "turbo run dev --filter=@khmercode/marketing",
+    "dev:desktop": "tsx scripts/dev-runner.ts dev:desktop",
+    "start": "turbo run start --filter=khmercode",
+    "start:desktop": "turbo run start --filter=@khmercode/desktop",
+    "start:marketing": "turbo run preview --filter=@khmercode/marketing",
+    "build": "turbo run build",
+    "build:marketing": "turbo run build --filter=@khmercode/marketing",
+    "build:desktop": "turbo run build --filter=@khmercode/desktop --filter=khmercode",
+    "typecheck": "turbo run typecheck",
+    "lint": "oxlint --report-unused-disable-directives",
+    "test": "turbo run test",
+    "test:desktop-smoke": "turbo run smoke-test --filter=@khmercode/desktop",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "build:contracts": "turbo run build --filter=@khmercode/contracts",
+    "dist:desktop:artifact": "node scripts/build-desktop-artifact.ts",
+    "dist:desktop:dmg": "node scripts/build-desktop-artifact.ts --platform mac --target dmg",
+    "dist:desktop:dmg:arm64": "node scripts/build-desktop-artifact.ts --platform mac --target dmg --arch arm64",
+    "dist:desktop:dmg:x64": "node scripts/build-desktop-artifact.ts --platform mac --target dmg --arch x64",
+    "dist:desktop:linux": "node scripts/build-desktop-artifact.ts --platform linux --target AppImage --arch x64",
+    "dist:desktop:win": "node scripts/build-desktop-artifact.ts --platform win --target nsis --arch x64",
+    "release:smoke": "node scripts/release-smoke.ts",
+    "check:repo-hygiene": "node scripts/check-repo-hygiene.mjs",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist apps/*/dist-electron packages/*/dist .turbo apps/*/.turbo packages/*/.turbo",
+    "sync:vscode-icons": "node scripts/sync-vscode-icons.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "concurrently": "catalog:",
+    "oxfmt": "^0.40.0",
+    "oxlint": "^1.55.0",
+    "tsx": "catalog:",
+    "turbo": "^2.3.3",
+    "vitest": "catalog:",
+    "yaml": "catalog:"
+  },
+  "overrides": {
+    "vite": "^8.0.0"
+  },
+  "engines": {
+    "node": "^24.13.1"
+  },
+  "packageManager": "pnpm@10.6.5",
+  "msw": {
+    "workerDirectory": [
+      "apps/web/public"
+    ]
+  }
+}

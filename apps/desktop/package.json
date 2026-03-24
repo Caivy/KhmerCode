@@ -1,0 +1,32 @@
+{
+  "name": "@khmercode/desktop",
+  "version": "0.0.13",
+  "private": true,
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names bundle,electron \"pnpm run dev:bundle\" \"pnpm run dev:electron\"",
+    "dev:bundle": "tsdown --watch",
+    "dev:electron": "node scripts/dev-electron.mjs",
+    "build": "tsdown",
+    "start": "node scripts/start-electron.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "smoke-test": "node scripts/smoke-test.mjs"
+  },
+  "dependencies": {
+    "effect": "catalog:",
+    "electron": "40.6.0",
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "@khmercode/contracts": "workspace:*",
+    "@khmercode/shared": "workspace:*",
+    "@types/node": "catalog:",
+    "concurrently": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wait-on": "^8.0.2"
+  },
+  "productName": "KhmerCode"
+}

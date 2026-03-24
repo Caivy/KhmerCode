@@ -1,0 +1,26 @@
+{
+  "name": "@khmercode/scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "effect-language-service patch",
+    "claude-fast-mode-probe": "tsx claude-fast-mode-probe.ts",
+    "claude-haiku-thinking-probe": "tsx claude-haiku-thinking-probe.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.77",
+    "@effect/platform-node": "catalog:",
+    "@khmercode/contracts": "workspace:*",
+    "@khmercode/shared": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/language-service": "catalog:",
+    "@effect/vitest": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
