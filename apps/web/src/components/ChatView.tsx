@@ -45,6 +45,7 @@ import {
   parseStandaloneComposerSlashCommand,
   replaceTextRange,
 } from "../composer-logic";
+import { buildInitSlashCommandPrompt } from "../composer-slash-commands";
 import {
   derivePendingApprovals,
   derivePendingUserInputs,
@@ -1059,6 +1060,13 @@ export default function ChatView({ threadId }: ChatViewProps) {
           command: "default",
           label: "/default",
           description: "Switch this thread back to normal chat mode",
+        },
+        {
+          id: "slash:init",
+          type: "slash-command",
+          command: "init",
+          label: "/init",
+          description: "Insert a repo-instructions prompt for this provider",
         },
       ] satisfies ReadonlyArray<Extract<ComposerCommandItem, { type: "slash-command" }>>;
       const query = composerTrigger.query.trim().toLowerCase();
@@ -2382,6 +2390,15 @@ export default function ChatView({ threadId }: ChatViewProps) {
         ? parseStandaloneComposerSlashCommand(trimmed)
         : null;
     if (standaloneSlashCommand) {
+      if (standaloneSlashCommand === "init") {
+        const initPrompt = buildInitSlashCommandPrompt(selectedProvider);
+        promptRef.current = initPrompt;
+        setPrompt(initPrompt);
+        setComposerHighlightedItemId(null);
+        setComposerCursor(collapseExpandedComposerCursor(initPrompt, initPrompt.length));
+        setComposerTrigger(null);
+        return;
+      }
       handleInteractionModeChange(standaloneSlashCommand);
       promptRef.current = "";
       clearComposerDraftContent(activeThread.id);
@@ -3271,6 +3288,21 @@ export default function ChatView({ threadId }: ChatViewProps) {
           }
           return;
         }
+        if (item.command === "init") {
+          const replacement = buildInitSlashCommandPrompt(selectedProvider);
+          const applied = applyPromptReplacement(
+            trigger.rangeStart,
+            trigger.rangeEnd,
+            replacement,
+            {
+              expectedText: snapshot.value.slice(trigger.rangeStart, trigger.rangeEnd),
+            },
+          );
+          if (applied) {
+            setComposerHighlightedItemId(null);
+          }
+          return;
+        }
         void handleInteractionModeChange(item.command === "plan" ? "plan" : "default");
         const applied = applyPromptReplacement(trigger.rangeStart, trigger.rangeEnd, "", {
           expectedText: snapshot.value.slice(trigger.rangeStart, trigger.rangeEnd),
@@ -3293,6 +3325,7 @@ export default function ChatView({ threadId }: ChatViewProps) {
       handleInteractionModeChange,
       onProviderModelSelect,
       resolveActiveComposerTrigger,
+      selectedProvider,
     ],
   );
   const onComposerMenuItemHighlighted = useCallback((itemId: string | null) => {
