@@ -651,7 +651,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       ...commandOutputOptions(options.verbose),
       // Windows needs shell mode to resolve package-manager .cmd shims.
       shell: process.platform === "win32",
-    })`pnpm install --prod --frozen-lockfile`,
+    })`pnpm install --prod --frozen-lockfile --config.node-linker=hoisted`,
   );
 
   const buildEnv: NodeJS.ProcessEnv = {
