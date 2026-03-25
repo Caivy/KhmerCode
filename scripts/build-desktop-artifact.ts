@@ -8,7 +8,10 @@ import desktopPackageJson from "../apps/desktop/package.json" with { type: "json
 import serverPackageJson from "../apps/server/package.json" with { type: "json" };
 
 import { BRAND_ASSET_PATHS } from "./lib/brand-assets.ts";
-import { readWorkspaceCatalog } from "./lib/read-workspace-catalog.ts";
+import {
+  readWorkspaceCatalog,
+  readWorkspaceOnlyBuiltDependencies,
+} from "./lib/read-workspace-catalog.ts";
 import { resolveCatalogDependencies } from "./lib/resolve-catalog.ts";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
@@ -24,6 +27,7 @@ const RepoRoot = Effect.service(Path.Path).pipe(
   Effect.flatMap((path) => path.fromFileUrl(new URL("..", import.meta.url))),
 );
 const workspaceCatalog = readWorkspaceCatalog();
+const workspaceOnlyBuiltDependencies = readWorkspaceOnlyBuiltDependencies();
 const ProductionMacIconSource = Effect.zipWith(
   RepoRoot,
   Effect.service(Path.Path),
@@ -178,6 +182,9 @@ interface StagePackageJson {
   readonly dependencies: Record<string, unknown>;
   readonly devDependencies: {
     readonly electron: string;
+  };
+  readonly pnpm?: {
+    readonly onlyBuiltDependencies: ReadonlyArray<string>;
   };
 }
 
@@ -453,6 +460,10 @@ const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     appId: "com.khmercode.khmercode",
     productName,
     artifactName: "KhmerCode-${version}-${arch}.${ext}",
+    // Native runtime deps are installed into the staged app before packaging,
+    // including their platform prebuilds when available. Avoid an extra
+    // electron-builder rebuild pass that can force local toolchains on CI/dev machines.
+    npmRebuild: false,
     directories: {
       buildResources: "apps/desktop/resources",
     },
@@ -485,6 +496,9 @@ const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     };
     if (signed) {
       winConfig.azureSignOptions = yield* AzureTrustedSigningOptionsConfig;
+    } else {
+      // Avoid downloading the Windows signing helper for unsigned local builds.
+      winConfig.signAndEditExecutable = false;
     }
     buildConfig.win = winConfig;
   }
@@ -561,6 +575,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
 
   const stageAppDir = path.join(stageRoot, "app");
   const stageResourcesDir = path.join(stageAppDir, "apps/desktop/resources");
+  const electronBuilderCli = path.join(repoRoot, "node_modules/electron-builder/cli.js");
   const distDirs = {
     desktopDist: path.join(repoRoot, "apps/desktop/dist-electron"),
     desktopResources: path.join(repoRoot, "apps/desktop/resources"),
@@ -631,10 +646,29 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     devDependencies: {
       electron: electronVersion,
     },
+    pnpm:
+      workspaceOnlyBuiltDependencies.length > 0
+        ? {
+            onlyBuiltDependencies: workspaceOnlyBuiltDependencies,
+          }
+        : undefined,
   };
 
   const stagePackageJsonString = yield* encodeJsonString(stagePackageJson);
   yield* fs.writeFileString(path.join(stageAppDir, "package.json"), `${stagePackageJsonString}\n`);
+  if (workspaceOnlyBuiltDependencies.length > 0) {
+    const stageWorkspaceManifest = [
+      "packages:",
+      "  - .",
+      "onlyBuiltDependencies:",
+      ...workspaceOnlyBuiltDependencies.map((dependency) => `  - ${dependency}`),
+      "",
+    ].join("\n");
+    yield* fs.writeFileString(
+      path.join(stageAppDir, "pnpm-workspace.yaml"),
+      stageWorkspaceManifest,
+    );
+  }
 
   yield* Effect.log("[desktop-artifact] Installing staged production dependencies...");
   yield* runCommand(
@@ -684,14 +718,17 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   yield* Effect.log(
     `[desktop-artifact] Building ${options.platform}/${options.target} (arch=${options.arch}, version=${appVersion})...`,
   );
+  if (!(yield* fs.exists(electronBuilderCli))) {
+    return yield* new BuildScriptError({
+      message: `electron-builder CLI was not found at ${electronBuilderCli}. Run 'pnpm install' in the repo root.`,
+    });
+  }
   yield* runCommand(
     ChildProcess.make({
       cwd: stageAppDir,
       env: buildEnv,
       ...commandOutputOptions(options.verbose),
-      // Windows needs shell mode to resolve package-manager .cmd shims.
-      shell: process.platform === "win32",
-    })`pnpm dlx electron-builder ${platformConfig.cliFlag} --${options.arch} --publish never`,
+    })`${process.execPath} ${electronBuilderCli} ${platformConfig.cliFlag} --${options.arch} --publish never`,
   );
 
   const stageDistDir = path.join(stageAppDir, "dist");
